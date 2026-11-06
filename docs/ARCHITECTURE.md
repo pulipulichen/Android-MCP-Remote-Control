@@ -10,14 +10,15 @@ This implementation is a sideload-only proof of concept. It does not claim Andro
 
 1. **Compose app** — collects ADB pairing/connection details, Tunnel ID and runtime API key; displays both connection states.
 2. **Kotlin ADB client** — uses `adb-kt` SPAKE2 pairing and TLS connection to Y700's `adbd`. Its generated RSA identity stays in app-private storage.
-3. **Local bridge** — loopback-only TCP socket bound to `127.0.0.1`, with a random per-process token. It passes a small allowlisted set of commands between the Go SDK and the Kotlin ADB client.
+3. **Local bridge** — loopback-only TCP socket bound to `127.0.0.1`, with a random per-process token. It dispatches named RPC methods between the Go SDK and Kotlin ADB client. The developer methods require a separate opt-in checked by the bridge.
 4. **Foreground service** — starts the Tunnel only after the user presses Start. The system notification shows the live state and provides a stop action.
 5. **OpenAI Tunnel Go SDK** — built as an Android arm64 AAR with Go Mobile. The Go MCP server and Tunnel client communicate through the SDK's in-memory MCP transport.
 
 ## MCP tools
 
 - `device_info`: read model and Android release using fixed `getprop` calls.
-- `tap_test_zone`: issue `input tap` at the center of the app's test button. The app switch defaults off. No arbitrary coordinates or shell command are accepted from the MCP caller.
+- `tap_test_zone`: issue `input tap` at the center of the app's test button. The app switch defaults off. The tool uses only the calculated center of the test button.
+- Developer tools are documented in the README. APK installation streams HTTPS data through ADB Sync to a unique temporary file on the target, verifies the optional digest, and asks the package manager to install it. The bridge attempts to remove the temporary file on completion or failure.
 
 ## Credential handling
 

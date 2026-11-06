@@ -8,7 +8,7 @@
 
 - **Phase 0：** Android App 內以 Kotlin ADB client 配對和連線到本機 adbd；提供裝置資訊及點擊測試區驗證。
 - **Phase 2：** 以 Go Mobile 將 OpenAI Tunnel Go SDK 編成 arm64 AAR，App 啟動前景服務並連到 Tunnel。
-- **MCP 工具：** `device_info`；`tap_test_zone`（預設關閉，需使用者在 App 內啟用）。沒有開放任意遠端 shell。
+- **MCP 工具：** `device_info`；`tap_test_zone`（預設關閉，需使用者在 App 內啟用）。其他工具需開啟「允許遠端開發工具」。
 - **API key：** 使用 Runtime API key，經 Android Keystore 保護後儲存在 App 私有空間。
 - **建置：** GitHub Actions 編譯 APK；CT 219 只負責 ADB 安裝與 Y700 驗證。
 
@@ -21,6 +21,20 @@
 5. 如需驗證遠端操作，再開啟「允許遠端點擊測試區」，由已設定此 Tunnel 的 MCP 用戶端呼叫 `tap_test_zone`。
 
 ADB 配對碼只用於配對，不會儲存。Tunnel API key 不會寫入 log。測試 APK 用於個人側載，不提供 Google Play 簽章或商店發佈素材。
+
+
+## MCP 開發工具
+
+開啟「允許遠端開發工具」後，已連上 Tunnel 的 MCP 用戶端可執行下列工具。這個開關預設關閉。
+
+- `list_packages` 列出套件，可傳 `third_party_only: true`。
+- `package_info` 查版本、權限與 Activity，`launch_app` 啟動 App。兩者都使用 `package_name`。
+- `install_apk` 使用 `url` 指定可直接下載單一 APK 的 HTTPS 網址，可附 `sha256` 核對內容。上限 256 MiB。更新須與既有 App 簽章相容，成功時保留資料。
+- `uninstall_app` 使用 `package_name` 移除 App，預設清除資料。需要保留時傳 `keep_data: true`。
+- `logcat` 取得最近的記錄，`lines` 預設為 100。
+- `adb_shell` 使用 `command` 執行 Android ADB shell 指令，例如 `id` 或 `getprop ro.product.model`。結果包含 `stdout`、`stderr`、`exit_code` 與 `truncated`。
+
+Shell 使用已配對的 ADB 權限，可執行套件與系統操作。請只對信任的 Tunnel 用戶端開啟開關。關閉開關會阻止新的開發操作。
 
 ## 文件
 

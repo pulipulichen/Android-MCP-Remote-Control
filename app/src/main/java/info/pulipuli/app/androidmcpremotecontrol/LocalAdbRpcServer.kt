@@ -9,6 +9,8 @@ import java.net.Socket
 import java.security.MessageDigest
 import java.security.SecureRandom
 import android.util.Base64
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -23,6 +25,7 @@ class LocalAdbRpcServer(
     private val scope: CoroutineScope,
 ) : AutoCloseable {
     private val server = ServerSocket(0, 8, InetAddress.getByName("127.0.0.1"))
+    private val developerTools = DeveloperTools(adb, settings)
     private var acceptJob: Job? = null
     val port: Int get() = server.localPort
     val token: String = ByteArray(32).also { SecureRandom().nextBytes(it) }.let { Base64.encodeToString(it, Base64.NO_WRAP) }
@@ -50,9 +53,13 @@ class LocalAdbRpcServer(
                 val result = when (request.optString("method")) {
                     "device_info" -> deviceInfo()
                     "tap_test_zone" -> tapTestZone()
-                    else -> throw IllegalArgumentException("Unsupported bridge method")
+                    else -> developerTools.call(request.getString("method"), request.optJSONObject("args") ?: JSONObject())
                 }
                 JSONObject().put("ok", true).put("result", result)
+            } catch (_: TimeoutCancellationException) {
+                JSONObject().put("ok", false).put("error", "ADB operation timed out")
+            } catch (cancelled: CancellationException) {
+                throw cancelled
             } catch (error: Exception) {
                 JSONObject().put("ok", false).put("error", error.message ?: "ADB operation failed")
             }

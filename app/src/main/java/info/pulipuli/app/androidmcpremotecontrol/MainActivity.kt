@@ -83,6 +83,7 @@ private fun MainScreen(context: MainActivity) {
     var message by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
     var remoteTapEnabled by remember { mutableStateOf(settings.remoteTapEnabled()) }
+    var developerToolsEnabled by remember { mutableStateOf(settings.developerToolsEnabled()) }
     var testTapCount by remember { mutableStateOf(0) }
     var testButtonCoordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
 
@@ -201,6 +202,16 @@ private fun MainScreen(context: MainActivity) {
                     settings.setRemoteTapEnabled(it)
                 })
             }
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.weight(1f)) {
+                    Text("允許遠端開發工具", fontWeight = FontWeight.Medium)
+                    Text("允許 Tunnel 呼叫者讀取 Logcat、安裝或移除 App，並以 ADB shell 權限執行指令。", style = MaterialTheme.typography.bodySmall)
+                }
+                Switch(checked = developerToolsEnabled, onCheckedChange = {
+                    developerToolsEnabled = it
+                    settings.setDeveloperToolsEnabled(it)
+                })
+            }
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Button(enabled = !busy && settings.adbVerified(), onClick = {
                     if (Build.VERSION.SDK_INT >= 33) notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
@@ -220,7 +231,7 @@ private fun MainScreen(context: MainActivity) {
             }
             StatusLine("Tunnel", tunnelStatus)
             Spacer(Modifier.height(2.dp))
-            Text("MCP 工具：device_info（讀取本機資訊）、tap_test_zone（只在上方開關啟用時可用）。", style = MaterialTheme.typography.bodySmall)
+            Text("開發工具包含套件查詢、APK 安裝、移除、App 啟動、Logcat 與 ADB shell。", style = MaterialTheme.typography.bodySmall)
         }
         Text("這是裝置相容性 PoC，僅供側載測試。", style = MaterialTheme.typography.bodySmall)
     }

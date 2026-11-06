@@ -37,6 +37,9 @@ class AdbController(context: Context) {
         }
     }
 
+    suspend fun <T> withClient(host: String, port: Int, action: suspend (AdbClient) -> T): T =
+        AdbClient.connectTls(host, port, keys).use { action(it) }
+
     suspend fun tap(host: String, port: Int): String = withTimeout(20_000) {
         AdbClient.connectTls(host, port, keys).use { client ->
             val (x, y) = withContext(Dispatchers.Main.immediate) {

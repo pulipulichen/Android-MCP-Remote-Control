@@ -1,6 +1,12 @@
 # Changelog
 
-## Unreleased — Phase 0 / Phase 2 proof of concept
+## 0.1.0-poc.2
+
+- Added opt-in MCP tools for package listing, inspection, launch, HTTPS APK installation, uninstall, Logcat and Android ADB shell.
+- APK installation accepts an optional SHA-256 digest, preserves app data on signature-compatible upgrades, and reports package manager errors.
+- Developer commands have time and output limits. The ADB shell returns separate stdout, stderr and exit status.
+
+## 0.1.0-poc.1 — Phase 0 / Phase 2 proof of concept
 
 - Added Android Compose app screens for Wireless ADB pairing, self-ADB tap verification, Tunnel settings, and connection status.
 - Embedded OpenAI Tunnel Go SDK through an arm64 Go Mobile AAR with an in-memory MCP server.

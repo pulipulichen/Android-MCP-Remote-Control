@@ -56,6 +56,11 @@ class SecureSettings(context: Context) {
     fun setRemoteTapEnabled(enabled: Boolean) { prefs.edit().putBoolean("remote_tap_enabled", enabled).apply() }
 
 
+    fun developerToolsEnabled(): Boolean = prefs.getBoolean("developer_tools_enabled", false)
+    fun setDeveloperToolsEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean("developer_tools_enabled", enabled).apply()
+    }
+
     fun tunnelStatus(): String = prefs.getString("tunnel_status", "尚未啟動").orEmpty()
     fun setTunnelStatus(value: String) { prefs.edit().putString("tunnel_status", value).apply() }
 
