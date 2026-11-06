@@ -6,6 +6,9 @@
 - Added safe GitHub Secrets sync and signing verification commands, plus gitignore rules for private material.
 - GitHub Actions requires the durable signing certificate, verifies the APK signature, and uses increasing build codes; unsigned or ephemeral-signed CI output is prohibited.
 - Documented one-time uninstall required when migrating from previously installed disposable debug certificates.
+- Changed successful main-branch and manual APK builds to publish a uniquely tagged GitHub prerelease with the signed APK and SHA-256 checksum as Release assets.
+- Removed Actions artifact uploads for distributable APK files. Release publishing now has job-scoped `contents: write` permission.
+- Workflow update recorded on 2026-11-07; no workflow run has yet verified this release path.
 
 ## 0.1.0-poc.2
 
