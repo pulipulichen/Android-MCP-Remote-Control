@@ -4,3 +4,11 @@ app/build/
 app/libs/mobiletunnel.aar
 app/libs/mobiletunnel-sources.jar
 local.properties
+
+# Permanent signing materials MUST never enter Git.
+*.keystore
+*.jks
+signing/signing.properties
+signing/*.base64
+keystore/*.base64
+key.properties

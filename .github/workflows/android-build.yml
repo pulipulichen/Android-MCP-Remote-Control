@@ -8,6 +8,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: android-mcp-permanent-apk-signing
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -72,12 +76,63 @@ jobs:
         with:
           gradle-version: "8.13"
 
+      - name: Restore permanent APK signing identity
+        env:
+          SIGNING_KEYSTORE_BASE64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
+          SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          set -euo pipefail
+          if [[ -n "${SIGNING_KEYSTORE_BASE64:-}" && -n "${SIGNING_STORE_PASSWORD:-}" && -n "${SIGNING_KEY_PASSWORD:-}" && -n "${SIGNING_KEY_ALIAS:-}" ]]; then
+            signing_base64="$SIGNING_KEYSTORE_BASE64"
+            store_password="$SIGNING_STORE_PASSWORD"
+            key_password="$SIGNING_KEY_PASSWORD"
+            key_alias="$SIGNING_KEY_ALIAS"
+          elif [[ -n "${ANDROID_KEYSTORE_BASE64:-}" && -n "${ANDROID_KEYSTORE_PASSWORD:-}" && -n "${ANDROID_KEY_PASSWORD:-}" && -n "${ANDROID_KEY_ALIAS:-}" ]]; then
+            signing_base64="$ANDROID_KEYSTORE_BASE64"
+            store_password="$ANDROID_KEYSTORE_PASSWORD"
+            key_password="$ANDROID_KEY_PASSWORD"
+            key_alias="$ANDROID_KEY_ALIAS"
+          else
+            echo "::error::Missing all four SIGNING_* repository secrets. See signing/README.md."
+            exit 1
+          fi
+          umask 077
+          mkdir -p signing
+          if ! printf '%s' "$signing_base64" | base64 --decode > signing/release.keystore; then
+            echo "::error::Invalid Base64-encoded signing key."
+            exit 1
+          fi
+          test -s signing/release.keystore || { echo "::error::Empty keystore."; exit 1; }
+          printf 'storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\n' \
+            "$store_password" "$key_password" "$key_alias" > signing/signing.properties
+          chmod 600 signing/release.keystore signing/signing.properties
+          if ! keytool -list -keystore signing/release.keystore -storepass "$store_password" \
+            -alias "$key_alias" > /dev/null 2>&1; then
+            echo "::error::Keystore, alias or password is invalid."
+            exit 1
+          fi
+
       - name: Build debug APK
         run: |
           mkdir -p .deps/licenses
           cp .deps/adb-kt/LICENSE .deps/licenses/adb-kt.txt
           cp .deps/spake2-kt/LICENSE .deps/licenses/spake2-kt.txt
-          gradle --no-daemon --stacktrace :app:assembleDebug
+          version_code=$(( $(date -u +%s) / 60 ))
+          gradle --no-daemon --stacktrace -PappVersionCode="$version_code" -PrequireStableSigning=true :app:assembleDebug
+
+      - name: Verify signed APK
+        run: |
+          set -euo pipefail
+          apk="app/build/outputs/apk/debug/app-debug.apk"
+          test -s "$apk"
+          apksigner="$ANDROID_HOME/build-tools/36.0.0/apksigner"
+          "$apksigner" verify --verbose "$apk"
 
       - name: Calculate APK checksum
         working-directory: app/build/outputs/apk/debug
@@ -86,7 +141,7 @@ jobs:
       - name: Upload short-lived device-test APK
         uses: actions/upload-artifact@v4
         with:
-          name: android-mcp-remote-control-poc-apk
+          name: android-mcp-remote-control-stable-signed-apk
           path: |
             app/build/outputs/apk/debug/app-debug.apk
             app/build/outputs/apk/debug/SHA256SUMS.txt

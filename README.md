@@ -10,7 +10,7 @@
 - **Phase 2：** 以 Go Mobile 將 OpenAI Tunnel Go SDK 編成 arm64 AAR，App 啟動前景服務並連到 Tunnel。
 - **MCP 工具：** `device_info`；`tap_test_zone`（預設關閉，需使用者在 App 內啟用）。其他工具需開啟「允許遠端開發工具」。
 - **API key：** 使用 Runtime API key，經 Android Keystore 保護後儲存在 App 私有空間。
-- **建置：** GitHub Actions 編譯 APK；CT 219 只負責 ADB 安裝與 Y700 驗證。
+- **建置：** GitHub Actions 使用固定 keystore 簽章 APK；CT 219 只負責 ADB 安裝與 Y700 驗證。
 
 ## Y700 測試
 
@@ -35,6 +35,10 @@ ADB 配對碼只用於配對，不會儲存。Tunnel API key 不會寫入 log。
 - `adb_shell` 使用 `command` 執行 Android ADB shell 指令，例如 `id` 或 `getprop ro.product.model`。結果包含 `stdout`、`stderr`、`exit_code` 與 `truncated`。
 
 Shell 使用已配對的 ADB 權限，可執行套件與系統操作。請只對信任的 Tunnel 用戶端開啟開關。關閉開關會阻止新的開發操作。
+
+## 固定 APK 簽章
+
+CI 的 debug APK 與本機 release APK 共用固定簽章憑證，支援未來以相同套件 ID 升級安裝。第一次從舊的臨時 debug 簽章轉換時可能需要移除舊版，請先備份 App 設定。請見 [signing/README.md](signing/README.md)；私鑰和密碼不會加入 Git。
 
 ## 文件
 

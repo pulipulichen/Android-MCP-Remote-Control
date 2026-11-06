@@ -4,7 +4,13 @@
 
 GitHub Actions workflow: `.github/workflows/android-build.yml`.
 
-The workflow uses Go 1.27.3 and Android NDK to build the OpenAI Tunnel Go SDK as an Android arm64 AAR, then builds `:app:assembleDebug` with Gradle 8.13 and JDK 17. It checks out pinned revisions of adb-kt and spake2-kt under `.deps/` because the adb-kt coordinate listed in the upstream README could not be resolved. The APK and SHA-256 file are kept as a short-lived workflow artifact for direct Y700 installation. APK builds do not run in CT 219.
+The workflow uses Go 1.27.3 and Android NDK to build the OpenAI Tunnel Go SDK as an Android arm64 AAR, then builds `:app:assembleDebug` with Gradle 8.13 and JDK 17, using one permanent PKCS12 signing key restored from GitHub Actions secrets. The workflow fails if signing secrets are incomplete and verifies the resulting APK signature. It checks out pinned revisions of adb-kt and spake2-kt under `.deps/` because the adb-kt coordinate listed in the upstream README could not be resolved. The stable-signed APK and SHA-256 file are kept as a short-lived workflow artifact for direct Y700 installation. APK builds do not run in CT 219.
+
+## Permanent signing setup
+
+The signing key is **not** committed to this repository. Restore the private signing backup into `signing/release.keystore` and `signing/signing.properties` on a trusted computer. With `gh` authenticated, run `./signing/setup.sh --sync-github` to upload the four `SIGNING_*` secrets without printing the credentials. Do this once per signing identity and keep offline backups. See [signing/README.md](signing/README.md).
+
+CI chooses a monotonically increasing UTC epoch-minute `versionCode`, while local Gradle still defaults to versionCode 2 unless overridden. Use `-PappVersionCode=NNN` for an upgrade-compatible local build. All workflows must use the same signing key and Android application ID. An APK already installed using the old disposable Android debug certificate **cannot be updated in place** with the new permanent certificate; back up its data and uninstall it once before installing the new key's first build.
 
 ## Device procedure
 

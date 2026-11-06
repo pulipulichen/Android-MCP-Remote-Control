@@ -1,7 +1,30 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
+}
+
+// One permanent certificate signs both debug and release APKs.
+val signingProperties = Properties().apply {
+    val propertiesFile = rootProject.file("signing/signing.properties")
+    if (propertiesFile.isFile) propertiesFile.inputStream().use { load(it) }
+}
+val stableKeystore = providers.environmentVariable("ANDROID_KEYSTORE_PATH").orNull
+    ?.let { file(it) } ?: rootProject.file("signing/release.keystore")
+val stableStorePassword = providers.environmentVariable("ANDROID_KEYSTORE_PASSWORD").orNull
+    ?: signingProperties.getProperty("storePassword")
+val stableKeyPassword = providers.environmentVariable("ANDROID_KEY_PASSWORD").orNull
+    ?: signingProperties.getProperty("keyPassword")
+val stableKeyAlias = providers.environmentVariable("ANDROID_KEY_ALIAS").orNull
+    ?: signingProperties.getProperty("keyAlias")
+val hasStableSigning = stableKeystore.isFile &&
+    listOf(stableStorePassword, stableKeyPassword, stableKeyAlias).all { !it.isNullOrBlank() }
+val requireStableSigning = providers.gradleProperty("requireStableSigning")
+    .orNull.equals("true", ignoreCase = true)
+check(!requireStableSigning || hasStableSigning) {
+    "Stable Android signing is required. Restore signing/release.keystore and signing/signing.properties. See signing/README.md."
 }
 
 android {
@@ -12,9 +35,29 @@ android {
         applicationId = "info.pulipuli.app.androidmcpremotecontrol"
         minSdk = 26
         targetSdk = 35
-        versionCode = 2
+        versionCode = providers.gradleProperty("appVersionCode").orNull?.toInt() ?: 2
         versionName = "0.1.0-poc.2"
         ndk { abiFilters += "arm64-v8a" }
+    }
+
+    signingConfigs {
+        create("stable") {
+            if (hasStableSigning) {
+                storeFile = stableKeystore
+                storePassword = stableStorePassword
+                keyPassword = stableKeyPassword
+                keyAlias = stableKeyAlias
+            }
+        }
+    }
+
+    buildTypes {
+        getByName("debug") {
+            if (hasStableSigning) signingConfig = signingConfigs.getByName("stable")
+        }
+        getByName("release") {
+            if (hasStableSigning) signingConfig = signingConfigs.getByName("stable")
+        }
     }
 
     buildFeatures { compose = true }

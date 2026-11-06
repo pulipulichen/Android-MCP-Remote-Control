@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — stable signing
+
+- Created a project-specific permanent PKCS12 RSA-3072 signing identity for future sideload upgrades.
+- Added safe GitHub Secrets sync and signing verification commands, plus gitignore rules for private material.
+- GitHub Actions requires the durable signing certificate, verifies the APK signature, and uses increasing build codes; unsigned or ephemeral-signed CI output is prohibited.
+- Documented one-time uninstall required when migrating from previously installed disposable debug certificates.
+
 ## 0.1.0-poc.2
 
 - Added opt-in MCP tools for package listing, inspection, launch, HTTPS APK installation, uninstall, Logcat and Android ADB shell.
