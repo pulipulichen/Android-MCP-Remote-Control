@@ -14,4 +14,6 @@
 - Build adb-kt and its pairing library from pinned source commits after Gradle could not resolve the advertised Maven coordinate.
 - Recalculate test tap coordinates from the focused app window immediately before sending the ADB command.
 
-Device compatibility and Tunnel readiness are pending the first Actions build and Y700 test.
+- [Actions run #5](https://github.com/pulipulichen/Android-MCP-Remote-Control/actions/runs/42239322393) built the arm64 APK. The artifact and APK checksums matched before CT 219 installed version `0.1.0-poc.1` on the Android 15 Y700. ADB confirmed the app launched and reached the foreground.
+
+In-app Wireless ADB pairing, self-control, and Tunnel readiness remain to be tested on the device.
