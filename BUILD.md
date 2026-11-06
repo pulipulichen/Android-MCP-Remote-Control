@@ -4,7 +4,7 @@
 
 GitHub Actions workflow: `.github/workflows/android-build.yml`.
 
-The workflow uses Go 1.27.3 and Android NDK to build the OpenAI Tunnel Go SDK as an Android arm64 AAR, then builds `:app:assembleDebug` with Gradle 8.13 and JDK 17. The resulting APK and SHA-256 file are kept as a short-lived workflow artifact for direct Y700 installation. APK builds do not run in CT 219.
+The workflow uses Go 1.27.3 and Android NDK to build the OpenAI Tunnel Go SDK as an Android arm64 AAR, then builds `:app:assembleDebug` with Gradle 8.13 and JDK 17. It checks out pinned revisions of adb-kt and spake2-kt under `.deps/` because the adb-kt coordinate listed in the upstream README could not be resolved. The APK and SHA-256 file are kept as a short-lived workflow artifact for direct Y700 installation. APK builds do not run in CT 219.
 
 ## Device procedure
 

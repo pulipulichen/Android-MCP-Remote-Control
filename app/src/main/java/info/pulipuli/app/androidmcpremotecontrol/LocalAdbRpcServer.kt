@@ -71,7 +71,7 @@ class LocalAdbRpcServer(
     private suspend fun tapTestZone(): JSONObject {
         check(settings.remoteTapEnabled()) { "遠端點擊尚未由使用者啟用" }
         check(settings.adbVerified()) { "請先完成 ADB 配對與連線測試" }
-        val result = adb.tap(settings.adbHost(), settings.adbPort(), settings.tapX(), settings.tapY())
+        val result = adb.tap(settings.adbHost(), settings.adbPort())
         return JSONObject().put("result", result)
     }
 

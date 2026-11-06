@@ -15,6 +15,22 @@ jobs:
       - name: Check out source
         uses: actions/checkout@v4
 
+      - name: Check out ADB client source
+        uses: actions/checkout@v4
+        with:
+          repository: rhythmcache/adb-kt
+          ref: 57f923576ce18df40e0ee6ad0610e52a9008b21d
+          path: .deps/adb-kt
+          persist-credentials: false
+
+      - name: Check out ADB pairing source
+        uses: actions/checkout@v4
+        with:
+          repository: rhythmcache/spake2-kt
+          ref: 68988da95a5d1550ba2c85c491938d2b5dfbbc4e
+          path: .deps/spake2-kt
+          persist-credentials: false
+
       - name: Set up Java
         uses: actions/setup-java@v5
         with:
@@ -57,7 +73,11 @@ jobs:
           gradle-version: "8.13"
 
       - name: Build debug APK
-        run: gradle --no-daemon --stacktrace :app:assembleDebug
+        run: |
+          mkdir -p .deps/licenses
+          cp .deps/adb-kt/LICENSE .deps/licenses/adb-kt.txt
+          cp .deps/spake2-kt/LICENSE .deps/licenses/spake2-kt.txt
+          gradle --no-daemon --stacktrace :app:assembleDebug
 
       - name: Calculate APK checksum
         working-directory: app/build/outputs/apk/debug

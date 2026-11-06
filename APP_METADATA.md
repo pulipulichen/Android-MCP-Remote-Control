@@ -17,7 +17,7 @@
 - Android arm64 (`arm64-v8a`) only
 - JDK 17, Gradle 8.13, Android Gradle Plugin 8.13.2, Kotlin 2.2.21
 - Go 1.27.3, OpenAI Tunnel Client Go SDK `v0.0.19`, Model Context Protocol Go SDK `v1.7.0`
-- Kotlin ADB library: `io.github.rhythmcache:adb-kt:1.0.0`
+- Kotlin ADB client: `adb-kt` v1.0.6 and `spake2-kt` v1.0.2, built from pinned source commits in CI
 
 ## Permissions and behavior
 

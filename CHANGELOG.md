@@ -11,5 +11,7 @@
 - First CI run stopped while `setup-android` attempted license acceptance and the retired `tools` package; the workflow now uses the runner's Android SDK and accepts licenses before installing the required packages.
 - Go Mobile's current binder requires `gobind` as a Go tool directive; the module now pins that tool alongside its runtime dependency.
 - Resolve the module graph before binding and align the generated Java package and port type with the Kotlin caller.
+- Build adb-kt and its pairing library from pinned source commits after Gradle could not resolve the advertised Maven coordinate.
+- Recalculate test tap coordinates from the focused app window immediately before sending the ADB command.
 
 Device compatibility and Tunnel readiness are pending the first Actions build and Y700 test.

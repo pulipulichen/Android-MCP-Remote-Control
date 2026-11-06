@@ -1,0 +1,6 @@
+.deps/
+.gradle/
+app/build/
+app/libs/mobiletunnel.aar
+app/libs/mobiletunnel-sources.jar
+local.properties

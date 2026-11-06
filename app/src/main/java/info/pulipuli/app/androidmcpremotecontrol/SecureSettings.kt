@@ -55,9 +55,6 @@ class SecureSettings(context: Context) {
     fun remoteTapEnabled(): Boolean = prefs.getBoolean("remote_tap_enabled", false)
     fun setRemoteTapEnabled(enabled: Boolean) { prefs.edit().putBoolean("remote_tap_enabled", enabled).apply() }
 
-    fun saveTapTarget(x: Int, y: Int) { prefs.edit().putInt("tap_x", x).putInt("tap_y", y).apply() }
-    fun tapX(): Int = prefs.getInt("tap_x", 0)
-    fun tapY(): Int = prefs.getInt("tap_y", 0)
 
     fun tunnelStatus(): String = prefs.getString("tunnel_status", "尚未啟動").orEmpty()
     fun setTunnelStatus(value: String) { prefs.edit().putString("tunnel_status", value).apply() }

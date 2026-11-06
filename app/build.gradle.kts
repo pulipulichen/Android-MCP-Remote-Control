@@ -19,11 +19,27 @@ android {
 
     buildFeatures { compose = true }
 
+    sourceSets.named("main") {
+        assets.srcDir(rootProject.file(".deps/licenses"))
+    }
+
+    packaging.resources {
+        excludes += "META-INF/versions/**"
+        merges += setOf("META-INF/LICENSE*", "META-INF/NOTICE*")
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions { jvmTarget = "17" }
+}
+
+kotlin.sourceSets.named("main") {
+    kotlin.srcDirs(
+        rootProject.file(".deps/adb-kt/lib/src/main/kotlin"),
+        rootProject.file(".deps/spake2-kt/src/main/kotlin"),
+    )
 }
 
 dependencies {
@@ -36,7 +52,10 @@ dependencies {
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
-    implementation("io.github.rhythmcache:adb-kt:1.0.0")
+    implementation("com.squareup.okio:okio:3.16.0")
+    implementation("org.bouncycastle:bcprov-jdk18on:1.85")
+    implementation("org.bouncycastle:bcpkix-jdk18on:1.85")
+    implementation("org.bouncycastle:bctls-jdk18on:1.85")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
     debugImplementation("androidx.compose.ui:ui-tooling")
 }

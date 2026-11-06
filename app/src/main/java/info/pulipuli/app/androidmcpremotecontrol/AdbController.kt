@@ -4,6 +4,8 @@ import android.content.Context
 import io.github.rhythmcache.adb.AdbClient
 import io.github.rhythmcache.adb.FileKeyProvider
 import java.io.File
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 
 class AdbController(context: Context) {
@@ -35,9 +37,11 @@ class AdbController(context: Context) {
         }
     }
 
-    suspend fun tap(host: String, port: Int, x: Int, y: Int): String = withTimeout(20_000) {
-        require(x > 0 && y > 0) { "尚未取得測試區座標" }
+    suspend fun tap(host: String, port: Int): String = withTimeout(20_000) {
         AdbClient.connectTls(host, port, keys).use { client ->
+            val (x, y) = withContext(Dispatchers.Main.immediate) {
+                checkNotNull(MainActivity.currentTapTarget?.invoke()) { "請在 App 前景顯示 ADB 點擊測試區" }
+            }
             val result = client.shell("input tap $x $y")
             if (!result.isSuccess) throw IllegalStateException(result.stderrText.ifBlank { "ADB tap 失敗" })
             "已透過本機 ADB 點擊測試區 ($x, $y)"

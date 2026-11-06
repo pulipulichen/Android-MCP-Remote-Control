@@ -32,6 +32,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -40,8 +41,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.isSpecified
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionOnScreen
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -53,13 +57,17 @@ import kotlinx.coroutines.launch
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { MaterialTheme { Surface(Modifier.fillMaxSize()) { MainScreen() } } }
+        setContent { MaterialTheme { Surface(Modifier.fillMaxSize()) { MainScreen(this) } } }
+    }
+
+    companion object {
+        // Set and read on the main thread while the test button is composed.
+        internal var currentTapTarget: (() -> Pair<Int, Int>?)? = null
     }
 }
 
 @Composable
-private fun MainScreen() {
-    val context = androidx.compose.ui.platform.LocalContext.current
+private fun MainScreen(context: MainActivity) {
     val settings = remember { SecureSettings(context) }
     val adb = remember { AdbController(context) }
     val scope = rememberCoroutineScope()
@@ -76,8 +84,27 @@ private fun MainScreen() {
     var busy by remember { mutableStateOf(false) }
     var remoteTapEnabled by remember { mutableStateOf(settings.remoteTapEnabled()) }
     var testTapCount by remember { mutableStateOf(0) }
-    var tapX by remember { mutableStateOf(settings.tapX()) }
-    var tapY by remember { mutableStateOf(settings.tapY()) }
+    var testButtonCoordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
+
+    DisposableEffect(context) {
+        val target = {
+            val coordinates = testButtonCoordinates
+            if (!context.hasWindowFocus() || coordinates == null || !coordinates.isAttached) {
+                null
+            } else {
+                val center = Offset(coordinates.size.width / 2f, coordinates.size.height / 2f)
+                val clippedBounds = coordinates.boundsInWindow()
+                val screen = coordinates.localToScreen(center)
+                if (clippedBounds.contains(coordinates.localToWindow(center)) && screen.isSpecified) {
+                    screen.x.toInt() to screen.y.toInt()
+                } else {
+                    null
+                }
+            }
+        }
+        MainActivity.currentTapTarget = target
+        onDispose { if (MainActivity.currentTapTarget === target) MainActivity.currentTapTarget = null }
+    }
 
     val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
     LaunchedEffect(Unit) {
@@ -144,22 +171,12 @@ private fun MainScreen() {
             Text("點擊此測試區會增加計數。下方按鈕會透過 App 內 ADB 執行 input tap，驗證裝置能控制自己。")
             Button(
                 onClick = { testTapCount++ },
-                modifier = Modifier.fillMaxWidth().onGloballyPositioned { coordinates ->
-                    val center = coordinates.positionOnScreen()
-                    val x = (center.x + coordinates.size.width / 2f).toInt()
-                    val y = (center.y + coordinates.size.height / 2f).toInt()
-                    if (x > 0 && y > 0 && (x != tapX || y != tapY)) {
-                        tapX = x
-                        tapY = y
-                        settings.saveTapTarget(x, y)
-                    }
-                },
+                modifier = Modifier.fillMaxWidth().onGloballyPositioned { testButtonCoordinates = it },
             ) { Text("ADB 點擊測試區｜目前計數 $testTapCount") }
-            Text("測試區中心：$tapX, $tapY", style = MaterialTheme.typography.bodySmall)
             Text("狀態：${if (settings.adbVerified()) "已保存 ADB 連線資訊" else "尚未通過連線驗證"}", style = MaterialTheme.typography.bodySmall)
             TextButton(enabled = !busy && settings.adbVerified(), onClick = {
                 launchWork {
-                    val result = adb.tap(host, connectionPort.toIntOrNull() ?: 0, tapX, tapY)
+                    val result = adb.tap(settings.adbHost(), settings.adbPort())
                     adbStatus = "ADB tap 測試已送出"
                     result
                 }
@@ -171,12 +188,13 @@ private fun MainScreen() {
             OutlinedTextField(tunnelId, { tunnelId = it }, label = { Text("Tunnel ID") }, singleLine = true, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(
                 apiKey, { apiKey = it }, label = { Text("Runtime API key") }, singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 visualTransformation = PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth(),
             )
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.weight(1f)) {
                     Text("允許遠端點擊測試區", fontWeight = FontWeight.Medium)
-                    Text("僅開放此 App 的測試按鈕；預設關閉。", style = MaterialTheme.typography.bodySmall)
+                    Text("開啟後，請讓測試按鈕留在 App 的前景畫面。", style = MaterialTheme.typography.bodySmall)
                 }
                 Switch(checked = remoteTapEnabled, onCheckedChange = {
                     remoteTapEnabled = it
