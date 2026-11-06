@@ -1,11 +1,12 @@
 # Changelog
 
-本專案尚未有可安裝的 App 版本。
+## Unreleased — Phase 0 / Phase 2 proof of concept
 
-## Unreleased
+- Added Android Compose app screens for Wireless ADB pairing, self-ADB tap verification, Tunnel settings, and connection status.
+- Embedded OpenAI Tunnel Go SDK through an arm64 Go Mobile AAR with an in-memory MCP server.
+- Added a foreground Tunnel service and a loopback-only authenticated bridge to the Kotlin ADB client.
+- Added allowlisted `device_info` and opt-in `tap_test_zone` MCP tools. Arbitrary remote shell is excluded.
+- Encrypted the Runtime API key with Android Keystore and added third-party notices.
+- Added GitHub Actions build for a temporary, short-retention test APK.
 
-### Added
-
-- 建立個人自用 App 的基本識別資料。
-- 記錄 Android 裝置控制、Tunnel、建置、真機驗證及側載發佈規劃。
-- 明確標示尚未實作與待確認的技術決策。
+Device compatibility and Tunnel readiness are pending the first Actions build and Y700 test.
