@@ -8,6 +8,8 @@
 
     <application
         android:allowBackup="false"
+        android:icon="@drawable/ic_launcher"
+        android:roundIcon="@drawable/ic_launcher"
         android:label="Android MCP Remote Control"
         android:usesCleartextTraffic="false"
         android:theme="@style/AppTheme">
