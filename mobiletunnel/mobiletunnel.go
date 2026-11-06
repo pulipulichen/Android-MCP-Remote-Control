@@ -19,7 +19,7 @@ var runtimeState = struct {
 }{status: "stopped"}
 
 // Start launches the official OpenAI Tunnel Go SDK inside the Android process.
-func Start(tunnelID, apiKey string, bridgePort int, bridgeToken string) error {
+func Start(tunnelID, apiKey string, bridgePort int32, bridgeToken string) error {
 	if tunnelID == "" || apiKey == "" || bridgeToken == "" || bridgePort < 1 || bridgePort > 65535 {
 		return fmt.Errorf("Tunnel ID, runtime API key, and local bridge settings are required")
 	}
@@ -33,7 +33,7 @@ func Start(tunnelID, apiKey string, bridgePort int, bridgeToken string) error {
 	runtimeState.status = "starting"
 	runtimeState.Unlock()
 
-	go run(ctx, tunnelID, apiKey, bridgePort, bridgeToken)
+	go run(ctx, tunnelID, apiKey, int(bridgePort), bridgeToken)
 	return nil
 }
 

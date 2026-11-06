@@ -43,11 +43,13 @@ jobs:
       - name: Build embedded OpenAI Tunnel SDK AAR
         working-directory: mobiletunnel
         run: |
+          go mod tidy
+          go list golang.org/x/mobile/bind
           go install golang.org/x/mobile/cmd/gomobile@v0.0.0-20261011034528-197770444867
-          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+          export PATH="$(go env GOPATH)/bin:$PATH"
           gomobile init
           mkdir -p ../app/libs
-          gomobile bind -v -target=android/arm64 -androidapi 26 -javapkg go.mobiletunnel -o ../app/libs/mobiletunnel.aar .
+          gomobile bind -v -target=android/arm64 -androidapi 26 -javapkg go -o ../app/libs/mobiletunnel.aar .
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -58,7 +60,8 @@ jobs:
         run: gradle --no-daemon --stacktrace :app:assembleDebug
 
       - name: Calculate APK checksum
-        run: sha256sum app/build/outputs/apk/debug/app-debug.apk > app/build/outputs/apk/debug/SHA256SUMS.txt
+        working-directory: app/build/outputs/apk/debug
+        run: sha256sum app-debug.apk > SHA256SUMS.txt
 
       - name: Upload short-lived device-test APK
         uses: actions/upload-artifact@v4
