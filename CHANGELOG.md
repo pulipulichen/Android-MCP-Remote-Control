@@ -8,5 +8,6 @@
 - Added allowlisted `device_info` and opt-in `tap_test_zone` MCP tools. Arbitrary remote shell is excluded.
 - Encrypted the Runtime API key with Android Keystore and added third-party notices.
 - Added GitHub Actions build for a temporary, short-retention test APK.
+- First CI run stopped while `setup-android` attempted license acceptance and the retired `tools` package; the workflow now uses the runner's Android SDK and accepts licenses before installing the required packages.
 
 Device compatibility and Tunnel readiness are pending the first Actions build and Y700 test.
