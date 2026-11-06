@@ -59,10 +59,10 @@ class TunnelForegroundService : LifecycleService() {
                 stopSelf()
                 return@launch
             }
-            val localBridge = LocalAdbRpcServer(adb, settings, serviceScope)
-            bridge = localBridge
-            localBridge.start()
             try {
+                val localBridge = LocalAdbRpcServer(adb, settings, serviceScope)
+                bridge = localBridge
+                localBridge.start()
                 withContext(Dispatchers.Main) {
                     Mobiletunnel.start(tunnelId, apiKey, localBridge.port, localBridge.token)
                 }
@@ -75,8 +75,12 @@ class TunnelForegroundService : LifecycleService() {
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (error: Exception) {
-                settings.setTunnelStatus("啟動失敗：${error.message ?: "未知錯誤"}")
+                val detail = error.message?.take(160) ?: error.javaClass.simpleName
+                settings.setTunnelStatus("啟動失敗：$detail")
                 updateNotification("啟動失敗")
+            } finally {
+                bridge?.close()
+                bridge = null
             }
         }
     }
