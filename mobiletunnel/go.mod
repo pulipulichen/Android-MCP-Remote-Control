@@ -9,3 +9,5 @@ require (
 	github.com/openai/tunnel-client v0.0.19
 	golang.org/x/mobile v0.0.0-20261011034528-197770444867
 )
+
+tool golang.org/x/mobile/cmd/gobind
