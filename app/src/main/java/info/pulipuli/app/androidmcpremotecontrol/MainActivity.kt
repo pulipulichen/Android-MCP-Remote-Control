@@ -9,6 +9,10 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -22,6 +26,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.NavigationDrawerItem
+import androidx.compose.material3.NavigationDrawerItemDefaults
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
@@ -32,6 +39,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -72,6 +80,7 @@ private fun MainScreen(context: MainActivity) {
     val adb = remember { AdbController(context) }
     val scope = rememberCoroutineScope()
 
+    var page by rememberSaveable { mutableStateOf("首頁") }
     var host by remember { mutableStateOf(settings.adbHost()) }
     var pairingPort by remember { mutableStateOf("") }
     var pairingCode by remember { mutableStateOf("") }
@@ -124,15 +133,94 @@ private fun MainScreen(context: MainActivity) {
         }
     }
 
-    Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
-    ) {
-        Text("Android MCP Remote Control", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-        Text("Phase 0 + Phase 2 技術驗證｜Y700 自我 ADB 與 Tunnel Client", style = MaterialTheme.typography.bodyMedium)
-        if (message.isNotBlank()) Text(message, color = MaterialTheme.colorScheme.primary)
-
-        InfoCard("Phase 0｜本機 ADB") {
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val wide = maxWidth >= 700.dp
+        var drawerOpen by rememberSaveable { mutableStateOf(false) }
+        Row(Modifier.fillMaxSize()) {
+            if (wide || drawerOpen) {
+                Column(
+                    Modifier.width(if (wide) 220.dp else 190.dp).fillMaxHeight()
+                        .padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Text("Android MCP", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Text("Remote Control", style = MaterialTheme.typography.bodySmall)
+                    Spacer(Modifier.height(12.dp))
+                    listOf("首頁", "ADB", "Tunnel", "設定", "關於").forEach { destination ->
+                        NavigationDrawerItem(
+                            label = { Text(destination) },
+                            selected = page == destination,
+                            onClick = { page = destination; drawerOpen = false },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                }
+            }
+            Column(Modifier.weight(1f).fillMaxHeight()) {
+                Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically) {
+                    if (!wide) TextButton(onClick = { drawerOpen = !drawerOpen }) { Text("☰") }
+                    Text(page, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                }
+                Column(
+                    Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                ) {
+                    if (message.isNotBlank()) Text(message, color = MaterialTheme.colorScheme.primary)
+                    when (page) {
+                        "首頁" -> {
+                            Text("裝置與連線狀態", style = MaterialTheme.typography.titleLarge)
+                            InfoCard("ADB｜本機控制") {
+                                StatusLine("ADB", adbStatus)
+                                Text("目標：$host:$connectionPort")
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Button(enabled = !busy, onClick = {
+                                        launchWork {
+                                            val port = connectionPort.toIntOrNull() ?: 0
+                                            val result = adb.verify(host, port)
+                                            settings.saveAdbTarget(host, port)
+                                            adbStatus = result
+                                            result
+                                        }
+                                    }) { Text("連線／重新連線") }
+                                    OutlinedButton(onClick = {
+                                        adbStatus = "已停止操作；ADB 系統服務不受此按鈕控制"
+                                    }) { Text("停止操作") }
+                                }
+                                TextButton(onClick = { page = "ADB" }) { Text("ADB 詳細設定") }
+                            }
+                            InfoCard("Tunnel｜遠端連線") {
+                                StatusLine("Tunnel", tunnelStatus)
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Button(enabled = !busy && settings.adbVerified(), onClick = {
+                                        if (Build.VERSION.SDK_INT >= 33) notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                        launchWork {
+                                            require(settings.tunnelId().isNotBlank() && settings.runtimeKey().isNotBlank()) { "請先在 Tunnel 頁面設定金鑰" }
+                                            settings.setTunnelStatus("正在啟動…")
+                                            ContextCompat.startForegroundService(context,
+                                                Intent(context, TunnelForegroundService::class.java)
+                                                    .setAction(TunnelForegroundService.ACTION_START))
+                                            "已要求啟動 Tunnel"
+                                        }
+                                    }) { Text("啟動／重新連線") }
+                                    OutlinedButton(onClick = {
+                                        context.startService(Intent(context, TunnelForegroundService::class.java)
+                                            .setAction(TunnelForegroundService.ACTION_STOP))
+                                    }) { Text("停止") }
+                                }
+                                TextButton(onClick = { page = "Tunnel" }) { Text("Tunnel 詳細設定") }
+                            }
+                            InfoCard("MCP 工具") {
+                                Text("開發工具：${if (developerToolsEnabled) "已授權" else "尚未授權"}")
+                                Text("工具實際可用性仍須透過 Tunnel 與 ADB 驗證。")
+                                TextButton(onClick = { page = "ADB" }) { Text("前往 ADB 操作") }
+                            }
+                            InfoCard("裝置資訊") {
+                                Text("Android ${Build.VERSION.RELEASE} · ${Build.MODEL}")
+                            }
+                        }
+                        "ADB" -> {
+        InfoCard("ADB｜配對與本機控制") {
             Text("在開發者選項開啟「無線偵錯」。配對用的 IP、配對埠與 6 位碼，從「使用配對碼配對裝置」取得；主畫面的埠是後續連線埠。")
             TextButton(onClick = { runCatching { context.startActivity(Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS)) } }) {
                 Text("開啟開發者選項")
@@ -184,7 +272,10 @@ private fun MainScreen(context: MainActivity) {
             }) { Text("透過 ADB 點擊測試區") }
         }
 
-        InfoCard("Phase 2｜App 內 Tunnel Client") {
+
+                        }
+                        "Tunnel" -> {
+        InfoCard("Tunnel｜遠端連線") {
             Text("使用 OpenAI Tunnel Runtime API key（CONTROL_PLANE_API_KEY）。金鑰會加密後存入 Android Keystore 保護的本機儲存。")
             OutlinedTextField(tunnelId, { tunnelId = it }, label = { Text("Tunnel ID") }, singleLine = true, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(
@@ -233,7 +324,33 @@ private fun MainScreen(context: MainActivity) {
             Spacer(Modifier.height(2.dp))
             Text("開發工具包含套件查詢、APK 安裝、移除、App 啟動、Logcat 與 ADB shell。", style = MaterialTheme.typography.bodySmall)
         }
-        Text("這是裝置相容性 PoC，僅供側載測試。", style = MaterialTheme.typography.bodySmall)
+
+                        }
+                        "設定" -> {
+                            InfoCard("自動啟動與背景執行") {
+                                Text("首次安裝預設不自動啟動 ADB 或 Tunnel。")
+                                Text("後續將加入開機啟動、重試與背景服務的獨立設定。")
+                            }
+                            InfoCard("MCP 工具與安全") {
+                                Text("遠端開發工具權限")
+                                Switch(checked = developerToolsEnabled, onCheckedChange = {
+                                    developerToolsEnabled = it
+                                    settings.setDeveloperToolsEnabled(it)
+                                })
+                                Text("具有破壞性的遠端操作需要另行設計本機確認流程。")
+                            }
+                        }
+                        "關於" -> {
+                            InfoCard("Android MCP Remote Control") {
+                                Text("版本：${context.packageManager.getPackageInfo(context.packageName, 0).versionName}")
+                                Text("GitHub：pulipulichen/Android-MCP-Remote-Control")
+                                Text("Android 裝置自我 ADB 控制與 OpenAI Tunnel 的技術驗證專案。")
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
